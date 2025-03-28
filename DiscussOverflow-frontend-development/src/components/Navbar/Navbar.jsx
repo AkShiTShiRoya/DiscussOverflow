@@ -10,7 +10,7 @@ const Navbar = () => {
           <span className="text-outer-space font-medium">SVGU</span>
           <span className="text-outer-space-light font-light text-2xl">|</span>
           <span className="text-outer-space-light font-light text-2xl font-serif">
-             Dev Discuss
+             StackOverflow
           </span>
         </Link>
         <button className="m-4" onClick={logout}>
