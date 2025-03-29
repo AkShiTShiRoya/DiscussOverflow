@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   node-app:
     build:
@@ -15,7 +14,7 @@ services:
       - mongodb
       - redis
     env_file:
-      - .env
+    - .env
 
   mongodb:
     build:
@@ -25,10 +24,8 @@ services:
     container_name: mongodb
     networks:
       - net1
-    ports:
-      - "27017:27017"
     environment:
-      - MONGO_INITDB_DATABASE=ljosc
+      - MONGO_INITDB_DATABASE=LJOSC
     volumes:
       - mongodb_data:/data/db
 
@@ -42,21 +39,6 @@ services:
       - net1
     volumes:
       - redis_data:/data/db
-
-  backend:
-    build: ./backend
-    restart: unless-stopped
-    container_name: backend
-    depends_on:
-      - mongodb
-    networks:
-      - net1
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./backend:/app
-    environment:
-      - DB_URI=mongodb://mongodb:27017/dev_discuss  # Fixed the service name from "mongo" to "mongodb"
 
 networks:
   net1:
