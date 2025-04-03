@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import MDEditor, { commands } from "@uiw/react-md-editor";
 import rehypeSanitize from "rehype-sanitize";
 import { protectedApi } from "../../services/api";
+import { useProfile } from "../../hooks/useProfile";
 
 const Thread = () => {
   const { id } = useParams(); // id of the requested thread
+  const router=useNavigate();
   const [replyVisible, setReplyVisible] = useState(false); // use state to toggle reply markdown box
   const [newReply, setNewReply] = useState({}); // new reply payload
   const [thread, setThread] = useState(); // fetched thread details
   const [message, setMessage] = useState({}); // error or success message
+    const { setProfile,profile } = useProfile();
+    console.log('profile :',profile, setProfile);
 
   useEffect(() => {
     // clear payload eveytime replyVisible is updated
@@ -77,11 +81,25 @@ const Thread = () => {
       });
   };
 
+  const handleThreadDelete = () => {
+    protectedApi
+      .delete(`/api/v1/thread/${id}`)
+      .then((response) => {
+        if (response.status === 200) {
+          router("/");
+        }
+      })
+      .catch((err) => {
+        console.error("delete thread", err);
+      });
+  };
+
   // fetch thread on component mount
   useEffect(() => {
     fetchThread();
   }, []);
-
+  
+  console.log('thread :ßßß', thread);
   return (
     <div className="w-3/5 mx-auto my-8">
       <div className="w-full">
@@ -112,6 +130,21 @@ const Thread = () => {
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
+                      {/* {thread?.author?._id==profile?._id && ( */}
+                      <button className="text-red-600 py-2 px-3" onClick={handleThreadDelete}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          fill="currentColor"
+                          className="bi bi-trash"
+                          viewBox="0 0 16 16"
+                        >
+                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                          <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                        </svg>
+                      </button>
+                      {/* )} */}
                       <button onClick={() => likeDislikeThread()}>
                         <span className="flex justify-center items-center space-x-2">
                           <span className="text-lg text-outer-space">

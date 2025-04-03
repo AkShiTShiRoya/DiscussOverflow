@@ -27,6 +27,7 @@
             localStorage.setItem("refreshToken", refreshToken);
             localStorage.setItem("accessToken", accessToken);
             setProfile(user);
+            console.log('user :', user);
             setMessage({
               status: "success",
               content: "Login successful",
@@ -109,7 +110,7 @@
               <span className="text-white font-medium">SVGU</span>
               <span className="text-white font-light text-2xl">|</span>
               <span className="text-white font-light text-2xl font-serif">
-                Dev Discuss
+              Discuss Overflow
               </span>
             </button>
           </div>

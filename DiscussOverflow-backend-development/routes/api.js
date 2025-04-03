@@ -310,16 +310,16 @@ router.get("/v1/thread", async (req, res) => {
     ]);
 
     // fetch cached data from redis if available
-    const cachedData = await redis.get(
-      `threads?page=${page}&limit=${limit}&filter=${filter}`
-    );
+    // const cachedData = await redis.get(
+    //   `threads?page=${page}&limit=${limit}&filter=${filter}`
+    // );
 
-    // check for cached data
-    if (cachedData) {
-      // Add other fields from the reply object as needed
-      const data = JSON.parse(cachedData);
-      res.status(200).send(data);
-    } else {
+    // // check for cached data
+    // if (cachedData) {
+    //   // Add other fields from the reply object as needed
+    //   const data = JSON.parse(cachedData);
+    //   res.status(200).send(data);
+    // } else {
       const threads = await Thread.aggregate(pipeline);
       const data = threads.map((thread) => {
         return {
@@ -327,15 +327,15 @@ router.get("/v1/thread", async (req, res) => {
           createDate: formatDateTime(thread.createDate),
         };
       });
-      res.status(200).send(data);
+      return res.status(200).send(data);
 
       // set result in redis cache
-      await redis.setex(
-        `threads?page=${page}&limit=${limit}&filter=${filter}`,
-        10,
-        JSON.stringify(data)
-      );
-    }
+      // await redis.setex(
+      //   `threads?page=${page}&limit=${limit}&filter=${filter}`,
+      //   10,
+      //   JSON.stringify(data)
+      // );
+    // }
   } catch (err) {
     console.log(err);
     res.status(500).send({ message: "Something went wrong" });
@@ -441,6 +441,39 @@ router.get("/v1/users/top", async (req, res) => {
   } catch (err) {
     res.status(500).send({ message: "Something went wrong" });
     console.log("top contributors", err);
+  }
+});
+
+router.delete("/v1/thread/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?._id; // Assuming user is authenticated and stored in `req.user`
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    // Find the thread by ID
+    const thread = await Thread.findById(id);
+    console.log('thread :', thread);
+    if (!thread) {
+      return res.status(404).json({ message: "Thread not found" });
+    }
+
+    // Check if the user is the author of the thread
+    if (thread.author.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You can only delete your own threads" });
+    }
+
+    await User.findByIdAndUpdate(thread.author, {
+      $inc: { likesReceived: -thread?.likes?.length },
+    });
+    // Delete the thread
+    await Thread.findByIdAndDelete(id);
+    return res.status(200).json({ message: "Thread deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting thread:", error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 });
 
