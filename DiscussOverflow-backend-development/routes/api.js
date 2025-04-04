@@ -28,7 +28,11 @@ router.post("/v1/thread", async (req, res) => {
     let keysToDelete = [];
 
     do {
-      const [newCursor, scannedKeys] = await redis.scan(cursor, "MATCH", "threads?*");
+      const [newCursor, scannedKeys] = await redis.scan(
+        cursor,
+        "MATCH",
+        "threads?*"
+      );
       cursor = newCursor;
       keysToDelete.push(...scannedKeys);
     } while (cursor !== "0");
@@ -320,21 +324,21 @@ router.get("/v1/thread", async (req, res) => {
     //   const data = JSON.parse(cachedData);
     //   res.status(200).send(data);
     // } else {
-      const threads = await Thread.aggregate(pipeline);
-      const data = threads.map((thread) => {
-        return {
-          ...thread,
-          createDate: formatDateTime(thread.createDate),
-        };
-      });
-      return res.status(200).send(data);
+    const threads = await Thread.aggregate(pipeline);
+    const data = threads.map((thread) => {
+      return {
+        ...thread,
+        createDate: formatDateTime(thread.createDate),
+      };
+    });
+    return res.status(200).send(data);
 
-      // set result in redis cache
-      // await redis.setex(
-      //   `threads?page=${page}&limit=${limit}&filter=${filter}`,
-      //   10,
-      //   JSON.stringify(data)
-      // );
+    // set result in redis cache
+    // await redis.setex(
+    //   `threads?page=${page}&limit=${limit}&filter=${filter}`,
+    //   10,
+    //   JSON.stringify(data)
+    // );
     // }
   } catch (err) {
     console.log(err);
@@ -455,14 +459,16 @@ router.delete("/v1/thread/:id", async (req, res) => {
 
     // Find the thread by ID
     const thread = await Thread.findById(id);
-    console.log('thread :', thread);
+    console.log("thread :", thread);
     if (!thread) {
       return res.status(404).json({ message: "Thread not found" });
     }
 
     // Check if the user is the author of the thread
     if (thread.author.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "You can only delete your own threads" });
+      return res
+        .status(403)
+        .json({ message: "You can only delete your own threads" });
     }
 
     await User.findByIdAndUpdate(thread.author, {
@@ -474,6 +480,37 @@ router.delete("/v1/thread/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting thread:", error);
     return res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.patch("/v1/thread/:threadId", async (req, res) => {
+  try {
+    const { threadId } = req.params;
+    const { content } = req.body;
+    console.log('content :', content);
+    const user = req.user;
+    console.log('user :', user);
+
+    if (!threadId || !content) {
+      return res.status(400).json({ message: "Thread ID and content are required." });
+    }
+    await redis.del(`thread?id=${threadId}`);
+
+    const thread = await Thread.findOneAndUpdate(
+      { _id: threadId, author: user._id },
+      { $set: { content } },
+      { new: true, runValidators: true }
+    );
+
+    console.log('thread :', thread);
+    if (!thread) {
+      return res.status(404).json({ message: "Thread not found or unauthorized" });
+    }
+
+    res.status(200).json({ message: "Thread updated successfully", thread });
+  } catch (err) {
+    console.error("Error updating thread:", err);
+    res.status(500).json({ message: "Something went wrong" });
   }
 });
 
