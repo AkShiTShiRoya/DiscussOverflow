@@ -1,4 +1,4 @@
 {
-    "plugins": [["transform-remove-console", { "exclude": ["error", "warn","debug"] }], "@babel/plugin-transform-optional-chaining"]
+    "plugins": [ "@babel/plugin-transform-optional-chaining"]
 }
   

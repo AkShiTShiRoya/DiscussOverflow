@@ -8,13 +8,16 @@ import { useProfile } from "../../hooks/useProfile";
 
 const Thread = () => {
   const { id } = useParams(); // id of the requested thread
-  const router=useNavigate();
+  const router = useNavigate();
   const [replyVisible, setReplyVisible] = useState(false); // use state to toggle reply markdown box
   const [newReply, setNewReply] = useState({}); // new reply payload
   const [thread, setThread] = useState(); // fetched thread details
   const [message, setMessage] = useState({}); // error or success message
-    const { setProfile,profile } = useProfile();
-    console.log('profile :',profile, setProfile);
+  const [isEditThread, setIsEditThread] = useState(false); // error or success message
+  const [editThread, setEditThread] = useState({
+    content: thread?.content,
+  }); // new reply payload
+  const { profile } = useProfile();
 
   useEffect(() => {
     // clear payload eveytime replyVisible is updated
@@ -66,6 +69,22 @@ const Thread = () => {
       });
   };
 
+  const updateThread = () => {
+    const { content } = editThread;
+    protectedApi.patch(`/api/v1/thread/${id}`, { content }).then((response) => {
+        if (response.status === 200) {
+          console.log(response);
+          fetchThread();
+          setMessage({
+            color: "keppel",
+            content: "success",
+          });
+          setIsEditThread(false);
+          setEditThread({});
+        }
+      });
+  };
+
   // send like or disllike request to the backend
   const likeDislikeThread = () => {
     const { liked } = thread;
@@ -98,8 +117,8 @@ const Thread = () => {
   useEffect(() => {
     fetchThread();
   }, []);
-  
-  console.log('thread :ßßß', thread);
+
+  console.log("thread :ßßß", thread);
   return (
     <div className="w-3/5 mx-auto my-8">
       <div className="w-full">
@@ -118,20 +137,76 @@ const Thread = () => {
                   <span>{thread?.author?.username[0]?.toUpperCase()}</span>
                 </div>
                 <div className="text-start w-full">
-                  <div className="font-semibold text-outer-space-light mb-3 mt-1">
+                  <div className="font-semibold text-outer-space-light mb-3 mt-1 flex justify-between">
                     {`${thread?.author?.username} (author)`}
+                    {thread?.author?._id==profile?._id && !isEditThread && (
+                      <button
+                        className="text-black"
+                        onClick={() => {setIsEditThread(true);setEditThread({
+                          content: thread?.content,
+                        });}}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          fill="currentColor"
+                          className="bi bi-pencil-square"
+                          viewBox="0 0 16 16"
+                        >
+                          <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                          <path
+                            fill-rule="evenodd"
+                            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"
+                          />
+                        </svg>
+                      </button>
+                    )}
                   </div>
+
                   <div className="text-lg" data-color-mode="light">
-                    <MDEditor.Markdown
-                      source={thread?.content}
-                      style={{ whiteSpace: "pre-wrap" }}
-                    />
+                    {isEditThread ? (
+                      <>
+                        <MDEditor
+                          value={editThread?.content}
+                          onChange={(val) => {
+                            setEditThread({
+                              content: val,
+                            });
+                          }}
+                          previewOptions={{
+                            rehypePlugins: [[rehypeSanitize]],
+                          }}
+                        />
+                        <button
+                          className="p-1 px-4 me-2 text-white bg-keppel hover:bg-keppel-dark transition disabled:bg-slate-300 my-3"
+                          disabled={!editThread?.content}
+                          onClick={updateThread}
+                        >
+                          Update
+                        </button>
+                        <button
+                          className="p-1 px-4 text-keppel bg-white hover:bg-white-dark transition my-3"
+                          onClick={()=>setIsEditThread(false)}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <MDEditor.Markdown
+                        source={thread?.content}
+                        style={{ whiteSpace: "pre-wrap" }}
+                      />
+                    )}
                   </div>
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
-                      {/* {thread?.author?._id==profile?._id && ( */}
-                      <button className="text-red-600 py-2 px-3" onClick={handleThreadDelete}>
+                      {thread?.author?._id==profile?._id && (
+                      <button
+                        className="text-red-600 py-2 px-3"
+                        onClick={handleThreadDelete}
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="16"
@@ -144,7 +219,7 @@ const Thread = () => {
                           <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
                         </svg>
                       </button>
-                      {/* )} */}
+                      )}
                       <button onClick={() => likeDislikeThread()}>
                         <span className="flex justify-center items-center space-x-2">
                           <span className="text-lg text-outer-space">

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useMemo } from "react";
 const profileContext = createContext();
 
 export function ProfileProvider({ children }) {
-  const [profile, setProfile] = useState(false);
+  const [profile, setProfile] = useState(JSON.parse(localStorage.getItem("userData")) ||null);
   const profileContextValue = useMemo(
     () => ({ profile, setProfile }),
     [profile],

@@ -26,6 +26,7 @@
             const { accessToken, refreshToken, user } = response.data;
             localStorage.setItem("refreshToken", refreshToken);
             localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("userData", JSON.stringify(user));
             setProfile(user);
             console.log('user :', user);
             setMessage({
