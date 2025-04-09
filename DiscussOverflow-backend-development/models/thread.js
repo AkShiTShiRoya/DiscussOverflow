@@ -14,7 +14,12 @@ const threadSchema = new mongoose.Schema({
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   replies: [
     {
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
       content: String,
+      likes:  {
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+        default: [],
+      },
       author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       date: { type: Date, default: Date.now },
     },

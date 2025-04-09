@@ -105,11 +105,34 @@ router.get("/v1/thread/:id", async (req, res) => {
                 $cond: [
                   { $isArray: "$replies" },
                   "$replies",
-                  [], // Handle empty replies array
+                  [],
                 ],
               },
               as: "reply",
               in: {
+                _id: "$$reply._id",
+                content: "$$reply.content",
+                date: "$$reply.date",
+                likes: "$$reply.likes",
+                likesCount: {
+                  $cond: {
+                    if: { $isArray: "$$reply.likes" },
+                    then: { $size: "$$reply.likes" },
+                    else: 0,
+                  },
+                },
+                liked: {
+                  $in: [
+                    new mongoose.Types.ObjectId(user._id),
+                    {
+                      $cond: {
+                        if: { $isArray: "$$reply.likes" },
+                        then: "$$reply.likes",
+                        else: [],
+                      },
+                    },
+                  ],
+                },
                 author: {
                   $let: {
                     vars: { authorId: "$$reply.author" },
@@ -127,11 +150,10 @@ router.get("/v1/thread/:id", async (req, res) => {
                     },
                   },
                 },
-                content: "$$reply.content",
-                date: "$$reply.date",
               },
             },
           },
+          
         },
       },
       {
@@ -162,8 +184,11 @@ router.get("/v1/thread/:id", async (req, res) => {
                   _id: "$$reply.author._id", // Access _id field within author
                   username: "$$reply.author.username", // Access username field within author
                 },
+                _id: "$$reply._id",
                 content: "$$reply.content",
                 date: "$$reply.date",
+                liked: "$$reply.liked",
+                likesCount: "$$reply.likesCount",
               },
             },
           },
@@ -171,14 +196,15 @@ router.get("/v1/thread/:id", async (req, res) => {
       },
     ];
 
-    const cachedData = await redis.get(`thread?id=${id}`);
+    // const cachedData = await redis.get(`thread?id=${id}`);
 
-    if (cachedData) {
-      const data = JSON.parse(cachedData);
-      res.status(200).send(data);
-    } else {
+    // if (cachedData) {
+    //   const data = JSON.parse(cachedData);
+    //   res.status(200).send(data);
+    // } else {
       const result = await Thread.aggregate(pipeline);
       const transformedThread = result[0];
+      console.log('transformedThread :', transformedThread);
 
       if (transformedThread) {
         response = {
@@ -198,7 +224,7 @@ router.get("/v1/thread/:id", async (req, res) => {
         res.status(404).send({ message: "Thread not found!" });
         return;
       }
-    }
+    // }
 
     // Update thead's reach and views
     const trackRecord = await Thread.findByIdAndUpdate(
@@ -361,6 +387,7 @@ router.post("/v1/thread/reply", async (req, res) => {
           replies: {
             author: user._id,
             content: content,
+            likes: 0,
           },
         },
       },
@@ -487,12 +514,14 @@ router.patch("/v1/thread/:threadId", async (req, res) => {
   try {
     const { threadId } = req.params;
     const { content } = req.body;
-    console.log('content :', content);
+    console.log("content :", content);
     const user = req.user;
-    console.log('user :', user);
+    console.log("user :", user);
 
     if (!threadId || !content) {
-      return res.status(400).json({ message: "Thread ID and content are required." });
+      return res
+        .status(400)
+        .json({ message: "Thread ID and content are required." });
     }
     await redis.del(`thread?id=${threadId}`);
 
@@ -502,15 +531,74 @@ router.patch("/v1/thread/:threadId", async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log('thread :', thread);
+    console.log("thread :", thread);
     if (!thread) {
-      return res.status(404).json({ message: "Thread not found or unauthorized" });
+      return res
+        .status(404)
+        .json({ message: "Thread not found or unauthorized" });
     }
 
     res.status(200).json({ message: "Thread updated successfully", thread });
   } catch (err) {
     console.error("Error updating thread:", err);
     res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.post("/v1/thread-replay/like", async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).send({ message: "Unauthorized" });
+    }
+
+    const user = req.user;
+    const { threadId, replyId, like = true } = req.body;
+
+    if (!threadId || !replyId) {
+      return res.status(400).send({ message: "Missing threadId or replyId" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(replyId)) {
+      return res.status(400).send({ message: "Invalid replyId" });
+    }
+
+    try {
+      await redis.del(`thread?id=${threadId}`);
+    } catch (err) {
+      console.warn("Redis cache clear failed:", err.message);
+    }
+
+    const thread = await Thread.findById(threadId);
+    if (!thread) {
+      return res.status(404).send({ message: "Thread not found" });
+    }
+
+    const reply = thread.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).send({ message: "Reply not found" });
+    }
+
+    const userIdStr = user._id.toString();
+    if (!Array.isArray(reply.likes)) {
+      reply.likes = [];
+    }
+    if (like) {
+      if (!reply.likes.some(id => id.toString() === userIdStr)) {
+        reply.likes.push(user._id);
+      }
+    } else {
+      reply.likes = reply.likes.filter(id => id.toString() !== userIdStr);
+    }
+
+    await thread.save();
+
+    res.status(201).send({
+      message: like ? "Liked successfully" : "Removed like successfully",
+      likesCount: reply.likes.length
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Something went wrong" });
   }
 });
 

@@ -72,17 +72,17 @@ const Thread = () => {
   const updateThread = () => {
     const { content } = editThread;
     protectedApi.patch(`/api/v1/thread/${id}`, { content }).then((response) => {
-        if (response.status === 200) {
-          console.log(response);
-          fetchThread();
-          setMessage({
-            color: "keppel",
-            content: "success",
-          });
-          setIsEditThread(false);
-          setEditThread({});
-        }
-      });
+      if (response.status === 200) {
+        console.log(response);
+        fetchThread();
+        setMessage({
+          color: "keppel",
+          content: "success",
+        });
+        setIsEditThread(false);
+        setEditThread({});
+      }
+    });
   };
 
   // send like or disllike request to the backend
@@ -118,7 +118,23 @@ const Thread = () => {
     fetchThread();
   }, []);
 
-  console.log("thread :ßßß", thread);
+  const likeDislikeThreadReplay = (replyId,liked) => {
+    protectedApi
+      .post("/api/v1/thread-replay/like", {
+        threadId: id,
+        replyId,
+        like: !liked,
+      })
+      .then((response) => {
+        if (response.status === 201) {
+          fetchThread();
+        }
+      })
+      .catch((err) => {
+        console.error("Like-dislike thread", err);
+      });
+  };
+
   return (
     <div className="w-3/5 mx-auto my-8">
       <div className="w-full">
@@ -139,12 +155,15 @@ const Thread = () => {
                 <div className="text-start w-full">
                   <div className="font-semibold text-outer-space-light mb-3 mt-1 flex justify-between">
                     {`${thread?.author?.username} (author)`}
-                    {thread?.author?._id==profile?._id && !isEditThread && (
+                    {thread?.author?._id == profile?._id && !isEditThread && (
                       <button
                         className="text-black"
-                        onClick={() => {setIsEditThread(true);setEditThread({
-                          content: thread?.content,
-                        });}}
+                        onClick={() => {
+                          setIsEditThread(true);
+                          setEditThread({
+                            content: thread?.content,
+                          });
+                        }}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -187,7 +206,7 @@ const Thread = () => {
                         </button>
                         <button
                           className="p-1 px-4 text-keppel bg-white hover:bg-white-dark transition my-3"
-                          onClick={()=>setIsEditThread(false)}
+                          onClick={() => setIsEditThread(false)}
                         >
                           Cancel
                         </button>
@@ -202,23 +221,23 @@ const Thread = () => {
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
-                      {thread?.author?._id==profile?._id && (
-                      <button
-                        className="text-red-600 py-2 px-3"
-                        onClick={handleThreadDelete}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          fill="currentColor"
-                          className="bi bi-trash"
-                          viewBox="0 0 16 16"
+                      {thread?.author?._id == profile?._id && (
+                        <button
+                          className="text-red-600 py-2 px-3"
+                          onClick={handleThreadDelete}
                         >
-                          <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
-                          <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
-                        </svg>
-                      </button>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            fill="currentColor"
+                            className="bi bi-trash"
+                            viewBox="0 0 16 16"
+                          >
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                          </svg>
+                        </button>
                       )}
                       <button onClick={() => likeDislikeThread()}>
                         <span className="flex justify-center items-center space-x-2">
@@ -337,7 +356,7 @@ const Thread = () => {
                   <div className="aspect-square w-fit px-3 mx-4 rounded-full text-white flex flex-col justify-center items-center bg-keppel">
                     <span>{reply?.author?.username[0]?.toUpperCase()}</span>
                   </div>
-                  <div className="text-start">
+                  <div className="text-start w-full">
                     <div className="font-semibold text-outer-space-light mb-3 mt-1">
                       {reply?.author?.username}
                       {thread?.author?._id === reply?.author?._id
@@ -350,8 +369,36 @@ const Thread = () => {
                         style={{ whiteSpace: "pre-wrap" }}
                       />
                     </div>
-                    <div className="py-2 pt-3 mt-5 flex justify-between items-center">
+                    <div className="py-2 mt-5 flex justify-between items-center">
                       <div>Date: {reply?.date}</div>
+                      <div className="flex justify-center items-center space-x-2">
+                        <button onClick={() => likeDislikeThreadReplay(reply?._id,reply?.liked)}>
+                          <span className="flex justify-center items-center space-x-2">
+                            <span className="text-lg text-outer-space">
+                              {reply?.likesCount}
+                            </span>
+                            <svg
+                              className={`w-6 h-6 ${
+                                reply?.liked
+                                  ? "text-red-600"
+                                  : "text-outer-space"
+                              } hover:text-red-600`}
+                              aria-hidden="true"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill={reply?.liked ? "red" : "none"}
+                              viewBox="0 0 21 19"
+                            >
+                              <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M11 4C5.5-1.5-1.5 5.5 4 11l7 7 7-7c5.458-5.458-1.542-12.458-7-7Z"
+                              />
+                            </svg>
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
