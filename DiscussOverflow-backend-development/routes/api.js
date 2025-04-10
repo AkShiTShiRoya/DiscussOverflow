@@ -648,6 +648,7 @@ router.post("/v1/thread-replay/like", async (req, res) => {
 router.patch("/v1/thread/:threadId/verify/:replyId", is_author, async (req, res) => {
   try {
     const { replyId } = req.params;
+    console.log('req :', req);
     req.thread.replies = req.thread.replies.map((reply) => {
       if (reply._id.toString() === replyId) {
         reply.is_answer = !reply.is_answer;

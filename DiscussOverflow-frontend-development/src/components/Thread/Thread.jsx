@@ -5,6 +5,8 @@ import MDEditor, { commands } from "@uiw/react-md-editor";
 import rehypeSanitize from "rehype-sanitize";
 import { protectedApi } from "../../services/api";
 import { useProfile } from "../../hooks/useProfile";
+import RightIcon from "../../assets/Image/correct-icon.svg";
+import CircleRing from "../../assets/Image/circle-ring.svg";
 
 const Thread = () => {
   const { id } = useParams(); // id of the requested thread
@@ -118,7 +120,7 @@ const Thread = () => {
     fetchThread();
   }, []);
 
-  const likeDislikeThreadReplay = (replyId,liked) => {
+  const likeDislikeThreadReplay = (replyId, liked) => {
     protectedApi
       .post("/api/v1/thread-replay/like", {
         threadId: id,
@@ -133,6 +135,19 @@ const Thread = () => {
       .catch((err) => {
         console.error("Like-dislike thread", err);
       });
+  };
+
+  const handleAuthorisedReplay = (replyData) => {
+    protectedApi.patch(`/api/v1/thread/${id}/verify/${replyData?._id}`).then((response) => {
+      if (response.status === 200) {
+        console.log(response);
+        fetchThread();
+        setMessage({
+          color: "keppel",
+          content: "success",
+        });
+      }
+    });
   };
 
   return (
@@ -294,7 +309,7 @@ const Thread = () => {
               </div>
 
               {/* reply markdown component */}
-              {replyVisible ? (
+              {replyVisible && (
                 <div className="w-11/12 ml-16 border-b-2">
                   <div data-color-mode="light" className="mx-auto m-5">
                     <MDEditor
@@ -340,8 +355,6 @@ const Thread = () => {
                     )}
                   </div>
                 </div>
-              ) : (
-                ""
               )}
 
               {/* replies */}
@@ -357,11 +370,17 @@ const Thread = () => {
                     <span>{reply?.author?.username[0]?.toUpperCase()}</span>
                   </div>
                   <div className="text-start w-full">
-                    <div className="font-semibold text-outer-space-light mb-3 mt-1">
-                      {reply?.author?.username}
-                      {thread?.author?._id === reply?.author?._id
-                        ? " (author)"
-                        : ""}
+                    <div className="flex justify-between">
+                      <div className="font-semibold text-outer-space-light mb-3 mt-1">
+                        {reply?.author?.username}
+                        {thread?.author?._id === reply?.author?._id
+                          ? " (author)"
+                          : ""}
+                      </div>
+                      <div onClick={() => thread?.author?._id == profile?._id && handleAuthorisedReplay(reply)}>
+                        <img src={reply?.is_answer?RightIcon:thread?.author?._id == profile?._id && CircleRing} className="w-6" />
+                        {/* <img src={CircleRing} className="w-6"/>  */}
+                      </div>
                     </div>
                     <div className="text-lg" data-color-mode="light">
                       <MDEditor.Markdown
@@ -372,7 +391,11 @@ const Thread = () => {
                     <div className="py-2 mt-5 flex justify-between items-center">
                       <div>Date: {reply?.date}</div>
                       <div className="flex justify-center items-center space-x-2">
-                        <button onClick={() => likeDislikeThreadReplay(reply?._id,reply?.liked)}>
+                        <button
+                          onClick={() =>
+                            likeDislikeThreadReplay(reply?._id, reply?.liked)
+                          }
+                        >
                           <span className="flex justify-center items-center space-x-2">
                             <span className="text-lg text-outer-space">
                               {reply?.likesCount}

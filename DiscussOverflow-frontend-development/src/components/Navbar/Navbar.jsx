@@ -21,7 +21,6 @@ const Navbar = () => {
         </button>
         <p>|</p>&nbsp;&nbsp;
         <p>{profile?.username}</p>
-
         </div>
       </div>
     </div>
