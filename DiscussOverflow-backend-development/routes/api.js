@@ -378,6 +378,14 @@ router.post("/v1/thread/reply", async (req, res) => {
     const user = req.user;
     const { threadId, content } = req.body;
 
+    if (!user || !user._id) {
+      return res.status(401).send({ message: "Unauthorized" });
+    }
+
+    if (!threadId || !content) {
+      return res.status(400).send({ message: "Missing threadId or content" });
+    }
+
     await redis.del(`thread?id=${threadId}`);
 
     const result = await Thread.findByIdAndUpdate(
@@ -386,22 +394,54 @@ router.post("/v1/thread/reply", async (req, res) => {
         $push: {
           replies: {
             author: user._id,
-            content: content,
-            likes: 0,
+            content,
+            likes: [], // ✅ FIXED: should be an empty array of ObjectIds
           },
         },
       },
       { new: true }
     );
 
+    if (!result) {
+      return res.status(404).send({ message: "Thread not found" });
+    }
+
     res.status(201).send(result);
   } catch (err) {
-    console.error(err);
+    console.error("Reply error:", err); // This will give a better trace
     res.status(500).send({ message: "Something went wrong" });
   }
 });
+// router.post("/v1/thread/reply", async (req, res) => {
+//   try {
+//     const user = req.user;
+//     const { threadId, content } = req.body;
+
+//     await redis.del(`thread?id=${threadId}`);
+
+//     const result = await Thread.findByIdAndUpdate(
+//       threadId,
+//       {
+//         $push: {
+//           replies: {
+//             author: user._id,
+//             content: content,
+//             likes: 0,
+//           },
+//         },
+//       },
+//       { new: true }
+//     );
+
+//     res.status(201).send(result);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send({ message: "Something went wrong" });
+//   }
+// });
 
 // like a thread
+
 router.post("/v1/thread/like", async (req, res) => {
   try {
     const user = req.user;
