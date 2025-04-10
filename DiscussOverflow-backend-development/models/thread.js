@@ -15,7 +15,7 @@ const threadSchema = new mongoose.Schema({
   replies: [
     {
       _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
-      content: String,
+      content: {type: String, required: true},
       likes:  {
         type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         default: [],
