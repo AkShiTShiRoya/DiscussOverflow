@@ -5,6 +5,7 @@ const Thread = require("../models/thread");
 const User = require("../models/user");
 const redis = require("../services/redis");
 const { formatDate, formatDateTime } = require("../utils/helpers");
+const is_author = require("../middleware/is_author");
 
 // create a new thread
 router.post("/v1/thread", async (req, res) => {
@@ -114,6 +115,7 @@ router.get("/v1/thread/:id", async (req, res) => {
                 content: "$$reply.content",
                 date: "$$reply.date",
                 likes: "$$reply.likes",
+                is_answer: "$$reply.is_answer",
                 likesCount: {
                   $cond: {
                     if: { $isArray: "$$reply.likes" },
@@ -189,6 +191,7 @@ router.get("/v1/thread/:id", async (req, res) => {
                 date: "$$reply.date",
                 liked: "$$reply.liked",
                 likesCount: "$$reply.likesCount",
+                is_answer: "$$reply.is_answer"
               },
             },
           },
@@ -641,5 +644,26 @@ router.post("/v1/thread-replay/like", async (req, res) => {
     res.status(500).send({ message: "Something went wrong" });
   }
 });
+
+router.patch("/v1/thread/:threadId/verify/:replyId", is_author, async (req, res) => {
+  try {
+    const { replyId } = req.params;
+    req.thread.replies = req.thread.replies.map((reply) => {
+      if (reply._id.toString() === replyId) {
+        reply.is_answer = !reply.is_answer;
+      }
+      else {
+        reply.is_answer = false;
+      }
+      return reply;
+    })
+    await req.thread.save();
+
+    return res.status(200).send({message: "success"});
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+})
 
 module.exports = router;

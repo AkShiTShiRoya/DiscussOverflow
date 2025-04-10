@@ -22,6 +22,7 @@ const threadSchema = new mongoose.Schema({
       },
       author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       date: { type: Date, default: Date.now },
+      is_answer: { type: Boolean, default: false }
     },
   ],
 }, { autoIndex: false });
