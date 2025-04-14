@@ -7,6 +7,24 @@ const redis = require("../services/redis");
 const { formatDate, formatDateTime } = require("../utils/helpers");
 const is_author = require("../middleware/is_author");
 
+router.get("/ping", async (req, res) => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  try {
+    const user = req.user;
+    if (currentDate != user.lastVisitDate) {
+      const response = await User.findByIdAndUpdate(user._id, {
+        $set: { lastVisitDate: currentDate },
+        $inc: { visitedDays: 1 },
+      });
+    }
+    res.status(200).send({ message: "Success", data: formatDate(currentDate) });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
+
 // create a new thread
 router.post("/v1/thread", async (req, res) => {
   try {
