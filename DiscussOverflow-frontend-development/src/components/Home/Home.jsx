@@ -21,7 +21,7 @@ const Home = () => {
   // fetch threads from the backend
   const fetchThreads = () => {
     protectedApi
-      .get(`/api/v1/thread?filter=${filter}`)
+      .get(`/api/user/v1/thread?filter=${filter}`)
       .then((response) => {
         if (response.status === 200) {
           setThreads(response.data);
@@ -35,7 +35,7 @@ const Home = () => {
   // fetch top contributors from the backend
   const fetchTopContributors = () => {
     protectedApi
-      .get("/api/v1/users/top")
+      .get("/api/user/v1/users/top")
       .then((response) => {
         if (response.status === 200) {
           setTopContributors(response.data);
@@ -64,7 +64,7 @@ const Home = () => {
   // send new thread payload to backend
   const createNewThread = () => {
     protectedApi
-      .post("/api/v1/thread", {
+      .post("/api/user/v1/thread", {
         title: newThread.title,
         content: newThread.content,
       })

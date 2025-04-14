@@ -41,7 +41,7 @@ const Thread = () => {
   // fetch thread from the backend
   const fetchThread = () => {
     protectedApi
-      .get(`/api/v1/thread/${id}`)
+      .get(`/api/user/v1/thread/${id}`)
       .then((response) => {
         if (response.status === 200) {
           console.log(response.data);
@@ -57,7 +57,7 @@ const Thread = () => {
   const sendReply = () => {
     const { content } = newReply;
     protectedApi
-      .post("/api/v1/thread/reply", { threadId: id, content })
+      .post("/api/user/v1/thread/reply", { threadId: id, content })
       .then((response) => {
         if (response.status === 201) {
           console.log(response);
@@ -73,7 +73,7 @@ const Thread = () => {
 
   const updateThread = () => {
     const { content } = editThread;
-    protectedApi.patch(`/api/v1/thread/${id}`, { content }).then((response) => {
+    protectedApi.patch(`/api/user/v1/thread/${id}`, { content }).then((response) => {
       if (response.status === 200) {
         console.log(response);
         fetchThread();
@@ -91,7 +91,7 @@ const Thread = () => {
   const likeDislikeThread = () => {
     const { liked } = thread;
     protectedApi
-      .post("/api/v1/thread/like", { threadId: id, like: !liked })
+      .post("/api/user/v1/thread/like", { threadId: id, like: !liked })
       .then((response) => {
         if (response.status === 201) {
           fetchThread();
@@ -104,7 +104,7 @@ const Thread = () => {
 
   const handleThreadDelete = () => {
     protectedApi
-      .delete(`/api/v1/thread/${id}`)
+      .delete(`/api/user/v1/thread/${id}`)
       .then((response) => {
         if (response.status === 200) {
           router("/");
@@ -122,7 +122,7 @@ const Thread = () => {
 
   const likeDislikeThreadReplay = (replyId, liked) => {
     protectedApi
-      .post("/api/v1/thread-replay/like", {
+      .post("/api/user/v1/thread-replay/like", {
         threadId: id,
         replyId,
         like: !liked,
@@ -138,7 +138,7 @@ const Thread = () => {
   };
 
   const handleAuthorisedReplay = (replyData) => {
-    protectedApi.patch(`/api/v1/thread/${id}/verify/${replyData?._id}`).then((response) => {
+    protectedApi.patch(`/api/user/v1/thread/${id}/verify/${replyData?._id}`).then((response) => {
       if (response.status === 200) {
         console.log(response);
         fetchThread();

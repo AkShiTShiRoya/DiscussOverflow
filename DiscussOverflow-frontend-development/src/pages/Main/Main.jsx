@@ -8,7 +8,7 @@ function Dashboard() {
   // send api request to log last visit
   useEffect(() => {
     protectedApi
-      .get("/ping")
+      .get("/api/user/ping")
       .then((response) => {
         if (response?.status === 200) {
           console.log("ping success");
