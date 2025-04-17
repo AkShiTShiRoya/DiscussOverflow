@@ -21,6 +21,8 @@ const Thread = () => {
   }); // new reply payload
   const { profile } = useProfile();
 
+  const userData=JSON.parse(localStorage.getItem("userData")) || null;
+
   useEffect(() => {
     // clear payload eveytime replyVisible is updated
     setNewReply({});
@@ -236,7 +238,7 @@ const Thread = () => {
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
-                      {thread?.author?._id == profile?._id && (
+                      {(userData?.is_admin || thread?.author?._id == profile?._id) && (
                         <button
                           className="text-red-600 py-2 px-3"
                           onClick={handleThreadDelete}

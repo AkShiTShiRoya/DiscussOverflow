@@ -14,6 +14,7 @@ const Navbar = () => {
       .get(`/api/user/v1/users/${profile._id}`)
       .then((response) => {
         if (response.status === 200) {
+          localStorage.setItem("userData",JSON.stringify(response.data.user));
           setUser(response.data.user); // fixed key
           console.log("User data", response.data.user);
         }
@@ -41,15 +42,13 @@ const Navbar = () => {
         </Link>
 
         <div className="flex justify-center items-center">
-          {user?.is_admin === true ? (
+          {user?.is_admin && (
               <Link to="/admin">
                 <button className="m-4 me-2 hover:text-keppel" onClick={Admin}>
                   Admin 
                 </button>     
                 <span className="font-extrabold text-keppel">|</span>   
               </Link>  
-            ) : (
-              <></>
             )}
           
           <button className="m-4 me-2 hover:text-keppel" onClick={logout}>
