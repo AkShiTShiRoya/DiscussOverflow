@@ -685,4 +685,22 @@ router.patch("/v1/thread/:threadId/verify/:replyId", is_author, async (req, res)
   }
 })
 
+// get user
+router.get("/v1/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    const response = {
+      user, // not "us"
+      success: true
+    };
+    res.status(200).send(response);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
+
+
+
 module.exports = router;

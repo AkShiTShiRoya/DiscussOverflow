@@ -7,11 +7,11 @@ const User = require("../models/user");
 const redis = require("../services/redis");
 const { formatDate, formatDateTime } = require("../utils/helpers");
 const is_author = require("../middleware/is_author");
+const adminAuthenticate = require("../middleware/adminAuthentication");
 
-router.post("/v1/users", async (req, res) => {
-    console.log('users')
+router.get("/v1/users",adminAuthenticate, async (req, res) => {
   try {
-    const users = await User.find({});
+    const users = await User.find({is_admin:false});
     const response = {
       users,
       success: true
@@ -24,7 +24,7 @@ router.post("/v1/users", async (req, res) => {
   }
 });
 
-router.post("/v1/threads", async (req, res) => {
+router.post("/v1/threads",adminAuthenticate, async (req, res) => {
     console.log('threads')
   try {
     const threads = await Thread.find({});
@@ -40,7 +40,7 @@ router.post("/v1/threads", async (req, res) => {
   }
 });
 
-router.delete("/v1/threads/:thread_id", async (req, res) => {
+router.delete("/v1/threads/:thread_id",adminAuthenticate, async (req, res) => {
   try {
     const response = await Thread.deleteOne({ _id: req.params.thread_id });
 
@@ -51,7 +51,7 @@ router.delete("/v1/threads/:thread_id", async (req, res) => {
   }
 });
 
-router.delete("/v1/threads/replay/:replay_id", async (req, res) => {
+router.delete("/v1/threads/replay/:replay_id",adminAuthenticate, async (req, res) => {
   try {
     const response = await Thread.deleteOne({ _id: req.params.thread_id });
 
@@ -62,6 +62,40 @@ router.delete("/v1/threads/replay/:replay_id", async (req, res) => {
   }
 });
 
+router.delete('/v1/users/:userId',adminAuthenticate, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await User.deleteOne({ _id: userId });
+    await Thread.deleteMany({ author: userId });
+    res.status(200).json({ message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting user" });
+  }
+});
+
+router.get("/v1/users/:userId/threads", adminAuthenticate, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const threads = await Thread.find({ "author": userId });
+    res.status(200).json({ threads });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch user threads" });
+  }
+});
+
+router.get("/v1/users/:userId", adminAuthenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+});
 
 
 module.exports = router;

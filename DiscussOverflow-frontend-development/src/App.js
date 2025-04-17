@@ -15,6 +15,8 @@ import Login from "./pages/Login/Login";
 import Thread from "./components/Thread/Thread";
 import { ToastContainer } from "react-toastify";
 import vanata from "./components/vanata/vanata";
+import Admin from "./pages/Admin/Admin";
+import UserDetailsWithThreads from "./pages/Admin/UserDetailsWithThreads";
 
 function App() {
   const { isLoggedIn } = useAuth(); // useParams state which indicated if a user is logged in or not
@@ -30,9 +32,11 @@ function App() {
             } // protected routes
           >
             <Route path="/" element={<Main />}>
-              <Route path="" element={<Home />} />
-              {/* <Route path="/vanata" element={<vanata/>}/> */}
-              <Route path="/thread/:id" element={<Thread />} />
+              <Route index element={<Home />} />
+              <Route path="thread/:id" element={<Thread />} />
+              <Route path="admin" element={<Admin />} />
+              <Route path="/userprofile/:userId" element={<UserDetailsWithThreads />} />
+              {/* <Route path="vanata" element={<Vanata />} /> */}
             </Route>
           </Route>
           <Route

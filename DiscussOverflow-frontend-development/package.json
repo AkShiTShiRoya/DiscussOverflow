@@ -4,8 +4,8 @@
   "description": "LJOSC Discuss frontend",
   "scripts": {
     "test": "jest",
-    "start": "parcel src/index.html",
     "build": "parcel build src/index.html",
+    "start": "parcel src/index.html",
     "prepare": "npx husky install",
     "format": "npx eslint --fix . && npx prettier --write .",
     "lint-staged": "lint-staged",

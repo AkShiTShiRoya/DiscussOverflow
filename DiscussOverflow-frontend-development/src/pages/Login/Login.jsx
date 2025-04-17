@@ -53,11 +53,13 @@ const Login = () => {
         password: payload.password,
       })
       .then((response) => {
+      console.log('response :', response);
         if (response.status === 201) {
           setMessage({
             status: "success",
             content: "Registration successful",
           });
+          window.location = "/";
         }
       })
       .catch((err) => {
