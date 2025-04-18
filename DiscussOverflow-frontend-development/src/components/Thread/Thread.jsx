@@ -21,7 +21,7 @@ const Thread = () => {
   }); // new reply payload
   const { profile } = useProfile();
 
-  const userData=JSON.parse(localStorage.getItem("userData")) || null;
+  const userData = JSON.parse(localStorage.getItem("userData")) || null;
 
   useEffect(() => {
     // clear payload eveytime replyVisible is updated
@@ -75,18 +75,20 @@ const Thread = () => {
 
   const updateThread = () => {
     const { content } = editThread;
-    protectedApi.patch(`/api/user/v1/thread/${id}`, { content }).then((response) => {
-      if (response.status === 200) {
-        console.log(response);
-        fetchThread();
-        setMessage({
-          color: "keppel",
-          content: "success",
-        });
-        setIsEditThread(false);
-        setEditThread({});
-      }
-    });
+    protectedApi
+      .patch(`/api/user/v1/thread/${id}`, { content })
+      .then((response) => {
+        if (response.status === 200) {
+          console.log(response);
+          fetchThread();
+          setMessage({
+            color: "keppel",
+            content: "success",
+          });
+          setIsEditThread(false);
+          setEditThread({});
+        }
+      });
   };
 
   // send like or disllike request to the backend
@@ -140,16 +142,18 @@ const Thread = () => {
   };
 
   const handleAuthorisedReplay = (replyData) => {
-    protectedApi.patch(`/api/user/v1/thread/${id}/verify/${replyData?._id}`).then((response) => {
-      if (response.status === 200) {
-        console.log(response);
-        fetchThread();
-        setMessage({
-          color: "keppel",
-          content: "success",
-        });
-      }
-    });
+    protectedApi
+      .patch(`/api/user/v1/thread/${id}/verify/${replyData?._id}`)
+      .then((response) => {
+        if (response.status === 200) {
+          console.log(response);
+          fetchThread();
+          setMessage({
+            color: "keppel",
+            content: "success",
+          });
+        }
+      });
   };
 
   return (
@@ -238,7 +242,8 @@ const Thread = () => {
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
-                      {(userData?.is_admin || thread?.author?._id == profile?._id) && (
+                      {(userData?.is_admin == true ||
+                        thread?.author?._id == profile?._id) && (
                         <button
                           className="text-red-600 py-2 px-3"
                           onClick={handleThreadDelete}
@@ -379,8 +384,21 @@ const Thread = () => {
                           ? " (author)"
                           : ""}
                       </div>
-                      <div onClick={() => thread?.author?._id == profile?._id && handleAuthorisedReplay(reply)}>
-                        <img src={reply?.is_answer?RightIcon:thread?.author?._id == profile?._id && CircleRing} className="w-6" />
+                      <div
+                        onClick={() =>
+                          thread?.author?._id == profile?._id &&
+                          handleAuthorisedReplay(reply)
+                        }
+                      >
+                        <img
+                          src={
+                            reply?.is_answer
+                              ? RightIcon
+                              : thread?.author?._id == profile?._id &&
+                                CircleRing
+                          }
+                          className="w-6"
+                        />
                         {/* <img src={CircleRing} className="w-6"/>  */}
                       </div>
                     </div>
