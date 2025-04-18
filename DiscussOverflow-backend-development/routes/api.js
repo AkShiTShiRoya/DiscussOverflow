@@ -7,6 +7,24 @@ const redis = require("../services/redis");
 const { formatDate, formatDateTime } = require("../utils/helpers");
 const is_author = require("../middleware/is_author");
 
+router.get("/ping", async (req, res) => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  try {
+    const user = req.user;
+    if (currentDate != user.lastVisitDate) {
+      const response = await User.findByIdAndUpdate(user._id, {
+        $set: { lastVisitDate: currentDate },
+        $inc: { visitedDays: 1 },
+      });
+    }
+    res.status(200).send({ message: "Success", data: formatDate(currentDate) });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
+
 // create a new thread
 router.post("/v1/thread", async (req, res) => {
   try {
@@ -103,11 +121,7 @@ router.get("/v1/thread/:id", async (req, res) => {
           replies: {
             $map: {
               input: {
-                $cond: [
-                  { $isArray: "$replies" },
-                  "$replies",
-                  [],
-                ],
+                $cond: [{ $isArray: "$replies" }, "$replies", []],
               },
               as: "reply",
               in: {
@@ -155,7 +169,6 @@ router.get("/v1/thread/:id", async (req, res) => {
               },
             },
           },
-          
         },
       },
       {
@@ -191,7 +204,7 @@ router.get("/v1/thread/:id", async (req, res) => {
                 date: "$$reply.date",
                 liked: "$$reply.liked",
                 likesCount: "$$reply.likesCount",
-                is_answer: "$$reply.is_answer"
+                is_answer: "$$reply.is_answer",
               },
             },
           },
@@ -205,28 +218,28 @@ router.get("/v1/thread/:id", async (req, res) => {
     //   const data = JSON.parse(cachedData);
     //   res.status(200).send(data);
     // } else {
-      const result = await Thread.aggregate(pipeline);
-      const transformedThread = result[0];
-      console.log('transformedThread :', transformedThread);
+    const result = await Thread.aggregate(pipeline);
+    const transformedThread = result[0];
+    console.log("transformedThread :", transformedThread);
 
-      if (transformedThread) {
-        response = {
-          ...transformedThread,
-          createDate: formatDateTime(transformedThread.createDate),
-          replies: transformedThread.replies.map((reply) => {
-            return {
-              ...reply,
-              date: formatDateTime(reply.date),
-            };
-          }),
-        };
-        res.status(200).send(response);
-        await redis.set(`thread?id=${id}`, JSON.stringify(response));
-      } else {
-        console.log("Thread not found.");
-        res.status(404).send({ message: "Thread not found!" });
-        return;
-      }
+    if (transformedThread) {
+      response = {
+        ...transformedThread,
+        createDate: formatDateTime(transformedThread.createDate),
+        replies: transformedThread.replies.map((reply) => {
+          return {
+            ...reply,
+            date: formatDateTime(reply.date),
+          };
+        }),
+      };
+      res.status(200).send(response);
+      await redis.set(`thread?id=${id}`, JSON.stringify(response));
+    } else {
+      console.log("Thread not found.");
+      res.status(404).send({ message: "Thread not found!" });
+      return;
+    }
     // }
 
     // Update thead's reach and views
@@ -527,15 +540,16 @@ router.delete("/v1/thread/:id", async (req, res) => {
       return res.status(401).json({ message: "Unauthorized access" });
     }
 
-    // Find the thread by ID
     const thread = await Thread.findById(id);
-    console.log("thread :", thread);
     if (!thread) {
       return res.status(404).json({ message: "Thread not found" });
     }
 
-    // Check if the user is the author of the thread
-    if (thread.author.toString() !== userId.toString()) {
+    // Correct permission check: allow if user is author OR admin
+    const isAuthor = thread.author.toString() === userId.toString();
+    const isAdmin = req?.user?.is_admin;
+
+    if (!isAuthor && !isAdmin) {
       return res
         .status(403)
         .json({ message: "You can only delete your own threads" });
@@ -544,7 +558,7 @@ router.delete("/v1/thread/:id", async (req, res) => {
     await User.findByIdAndUpdate(thread.author, {
       $inc: { likesReceived: -thread?.likes?.length },
     });
-    // Delete the thread
+
     await Thread.findByIdAndDelete(id);
     return res.status(200).json({ message: "Thread deleted successfully" });
   } catch (error) {
@@ -574,7 +588,7 @@ router.patch("/v1/thread/:threadId", async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log("thread :", thread);
+    // console.log("thread :", thread);
     if (!thread) {
       return res
         .status(404)
@@ -626,18 +640,18 @@ router.post("/v1/thread-replay/like", async (req, res) => {
       reply.likes = [];
     }
     if (like) {
-      if (!reply.likes.some(id => id.toString() === userIdStr)) {
+      if (!reply.likes.some((id) => id.toString() === userIdStr)) {
         reply.likes.push(user._id);
       }
     } else {
-      reply.likes = reply.likes.filter(id => id.toString() !== userIdStr);
+      reply.likes = reply.likes.filter((id) => id.toString() !== userIdStr);
     }
 
     await thread.save();
 
     res.status(201).send({
       message: like ? "Liked successfully" : "Removed like successfully",
-      likesCount: reply.likes.length
+      likesCount: reply.likes.length,
     });
   } catch (err) {
     console.error(err);
@@ -645,26 +659,45 @@ router.post("/v1/thread-replay/like", async (req, res) => {
   }
 });
 
-router.patch("/v1/thread/:threadId/verify/:replyId", is_author, async (req, res) => {
-  try {
-    const { replyId } = req.params;
-    console.log('req :', req);
-    req.thread.replies = req.thread.replies.map((reply) => {
-      if (reply._id.toString() === replyId) {
-        reply.is_answer = !reply.is_answer;
-      }
-      else {
-        reply.is_answer = false;
-      }
-      return reply;
-    })
-    await req.thread.save();
+router.patch(
+  "/v1/thread/:threadId/verify/:replyId",
+  is_author,
+  async (req, res) => {
+    try {
+      const { replyId } = req.params;
+      console.log("req :", req);
+      req.thread.replies = req.thread.replies.map((reply) => {
+        if (reply._id.toString() === replyId) {
+          reply.is_answer = !reply.is_answer;
+        } else {
+          reply.is_answer = false;
+        }
+        return reply;
+      });
+      await req.thread.save();
 
-    return res.status(200).send({message: "success"});
+      return res.status(200).send({ message: "success" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ message: "Something went wrong" });
+    }
+  }
+);
+
+// get user
+router.get("/v1/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    const response = {
+      user, // not "us"
+      success: true,
+    };
+    res.status(200).send(response);
   } catch (err) {
-    console.error(err);
+    console.log(err);
     res.status(500).send({ message: "Something went wrong" });
   }
-})
+});
 
 module.exports = router;

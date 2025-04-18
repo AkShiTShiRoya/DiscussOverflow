@@ -4,11 +4,12 @@
   "description": "LJOSC Discuss frontend",
   "scripts": {
     "test": "jest",
-    "start": "parcel src/index.html",
     "build": "parcel build src/index.html",
+    "start": "parcel src/index.html",
     "prepare": "npx husky install",
     "format": "npx eslint --fix . && npx prettier --write .",
-    "lint-staged": "lint-staged"
+    "lint-staged": "lint-staged",
+    "serve": "npx serve -s dist/"
   },
   "devDependencies": {
     "@babel/core": "^7.22.11",
@@ -41,6 +42,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0",
+    "react-toastify": "^11.0.5",
     "rehype-sanitize": "^6.0.0",
     "three": "^0.174.0",
     "vanta": "^0.5.24"

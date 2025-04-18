@@ -21,6 +21,8 @@ const Thread = () => {
   }); // new reply payload
   const { profile } = useProfile();
 
+  const userData = JSON.parse(localStorage.getItem("userData")) || null;
+
   useEffect(() => {
     // clear payload eveytime replyVisible is updated
     setNewReply({});
@@ -41,7 +43,7 @@ const Thread = () => {
   // fetch thread from the backend
   const fetchThread = () => {
     protectedApi
-      .get(`/api/v1/thread/${id}`)
+      .get(`/api/user/v1/thread/${id}`)
       .then((response) => {
         if (response.status === 200) {
           console.log(response.data);
@@ -57,7 +59,7 @@ const Thread = () => {
   const sendReply = () => {
     const { content } = newReply;
     protectedApi
-      .post("/api/v1/thread/reply", { threadId: id, content })
+      .post("/api/user/v1/thread/reply", { threadId: id, content })
       .then((response) => {
         if (response.status === 201) {
           console.log(response);
@@ -73,25 +75,27 @@ const Thread = () => {
 
   const updateThread = () => {
     const { content } = editThread;
-    protectedApi.patch(`/api/v1/thread/${id}`, { content }).then((response) => {
-      if (response.status === 200) {
-        console.log(response);
-        fetchThread();
-        setMessage({
-          color: "keppel",
-          content: "success",
-        });
-        setIsEditThread(false);
-        setEditThread({});
-      }
-    });
+    protectedApi
+      .patch(`/api/user/v1/thread/${id}`, { content })
+      .then((response) => {
+        if (response.status === 200) {
+          console.log(response);
+          fetchThread();
+          setMessage({
+            color: "keppel",
+            content: "success",
+          });
+          setIsEditThread(false);
+          setEditThread({});
+        }
+      });
   };
 
   // send like or disllike request to the backend
   const likeDislikeThread = () => {
     const { liked } = thread;
     protectedApi
-      .post("/api/v1/thread/like", { threadId: id, like: !liked })
+      .post("/api/user/v1/thread/like", { threadId: id, like: !liked })
       .then((response) => {
         if (response.status === 201) {
           fetchThread();
@@ -104,7 +108,7 @@ const Thread = () => {
 
   const handleThreadDelete = () => {
     protectedApi
-      .delete(`/api/v1/thread/${id}`)
+      .delete(`/api/user/v1/thread/${id}`)
       .then((response) => {
         if (response.status === 200) {
           router("/");
@@ -122,7 +126,7 @@ const Thread = () => {
 
   const likeDislikeThreadReplay = (replyId, liked) => {
     protectedApi
-      .post("/api/v1/thread-replay/like", {
+      .post("/api/user/v1/thread-replay/like", {
         threadId: id,
         replyId,
         like: !liked,
@@ -138,16 +142,18 @@ const Thread = () => {
   };
 
   const handleAuthorisedReplay = (replyData) => {
-    protectedApi.patch(`/api/v1/thread/${id}/verify/${replyData?._id}`).then((response) => {
-      if (response.status === 200) {
-        console.log(response);
-        fetchThread();
-        setMessage({
-          color: "keppel",
-          content: "success",
-        });
-      }
-    });
+    protectedApi
+      .patch(`/api/user/v1/thread/${id}/verify/${replyData?._id}`)
+      .then((response) => {
+        if (response.status === 200) {
+          console.log(response);
+          fetchThread();
+          setMessage({
+            color: "keppel",
+            content: "success",
+          });
+        }
+      });
   };
 
   return (
@@ -236,7 +242,8 @@ const Thread = () => {
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
                     <div className="flex justify-center items-center space-x-2">
-                      {thread?.author?._id == profile?._id && (
+                      {(userData?.is_admin == true ||
+                        thread?.author?._id == profile?._id) && (
                         <button
                           className="text-red-600 py-2 px-3"
                           onClick={handleThreadDelete}
@@ -377,8 +384,21 @@ const Thread = () => {
                           ? " (author)"
                           : ""}
                       </div>
-                      <div onClick={() => thread?.author?._id == profile?._id && handleAuthorisedReplay(reply)}>
-                        <img src={reply?.is_answer?RightIcon:thread?.author?._id == profile?._id && CircleRing} className="w-6" />
+                      <div
+                        onClick={() =>
+                          thread?.author?._id == profile?._id &&
+                          handleAuthorisedReplay(reply)
+                        }
+                      >
+                        <img
+                          src={
+                            reply?.is_answer
+                              ? RightIcon
+                              : thread?.author?._id == profile?._id &&
+                                CircleRing
+                          }
+                          className="w-6"
+                        />
                         {/* <img src={CircleRing} className="w-6"/>  */}
                       </div>
                     </div>

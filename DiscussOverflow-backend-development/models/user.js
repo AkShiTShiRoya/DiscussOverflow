@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   visitedDays: { type: Number, default: 0},
   visitedThreads: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thread' }], default: []},
   likesReceived: { type: Number, default: 0 },
+  is_admin: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model("User", userSchema);

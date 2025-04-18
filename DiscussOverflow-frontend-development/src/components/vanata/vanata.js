@@ -21,7 +21,7 @@ const Logins = () => {
 
     return (
         <div ref={vantaRef} className="h-screen w-full flex items-center justify-center">
-            <h1 className="text-white text-3xl font-bold">Welcome to Dev Discuss</h1>
+            <h1 className="text-white text-3xl font-bold">Welcome to Discuss Overflow</h1>
         </div>
     );
 };

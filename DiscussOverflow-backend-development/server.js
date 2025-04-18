@@ -7,6 +7,7 @@ const authMiddleware = require("./middleware/authentication")
 const authRouter = require("./routes/auth");
 const indexRoute = require("./routes/index");
 const apiRoute = require("./routes/api");
+const adminRoute = require("./routes/adminRoute");
 const cors = require("cors")
 const rateLimit = require('express-rate-limit');
 
@@ -42,9 +43,10 @@ app.use(cors(corsOptions));
 app.use("/auth", authRouter);
 
 // protect rest of the routes with authMiddleware
-app.use("/", authMiddleware);
 app.use('/', indexRoute)
-app.use("/api", apiRoute);
+// app.use("/api", apiRoute);
+app.use("/api/admin", adminRoute);
+app.use("/api/user", authMiddleware, apiRoute);
 
 // start listening on the server
 app.listen(SERVER_PORT, () =>
