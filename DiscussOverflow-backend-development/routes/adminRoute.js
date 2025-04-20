@@ -62,16 +62,29 @@ router.delete("/v1/threads/replay/:replay_id",adminAuthenticate, async (req, res
   }
 });
 
-router.delete('/v1/users/:userId',adminAuthenticate, async (req, res) => {
+router.delete('/v1/users/:userId', adminAuthenticate, async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // Delete the user
     await User.deleteOne({ _id: userId });
+
+    // Delete threads authored by the user
     await Thread.deleteMany({ author: userId });
-    res.status(200).json({ message: "User deleted" });
+
+    // Remove all replies authored by the user from other threads
+    await Thread.updateMany(
+      { "replies.author": userId },
+      { $pull: { replies: { author: userId } } }
+    );
+
+    res.status(200).json({ message: "User and their replies deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting user" });
+    console.error("Delete user error:", err);
+    res.status(500).json({ message: "Error deleting user and their replies" });
   }
 });
+
 
 router.get("/v1/users/:userId/threads", adminAuthenticate, async (req, res) => {
   try {
