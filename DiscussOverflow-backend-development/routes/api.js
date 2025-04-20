@@ -602,6 +602,92 @@ router.patch("/v1/thread/:threadId", async (req, res) => {
   }
 });
 
+router.delete("/v1/thread/reply/:replyId", async (req, res) => {
+  try {
+    const { replyId } = req.params;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    // Find the thread that contains the reply
+    const thread = await Thread.findOne({ "replies._id": replyId });
+
+    if (!thread) {
+      return res.status(404).json({ message: "Reply not found" });
+    }
+
+    const reply = thread.replies.id(replyId);
+    if (!reply) {
+      return res.status(404).json({ message: "Reply not found in thread" });
+    }
+
+    const isAuthor = reply.author.toString() === userId.toString();
+    const isThreadOwner = thread.author.toString() === userId.toString();
+    const isAdmin = req.user?.is_admin;
+
+    if (!isAuthor && !isThreadOwner && !isAdmin) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this reply" });
+    }
+
+    // ✅ Use filtering instead of .remove()
+    thread.replies = thread.replies.filter(r => r._id.toString() !== replyId);
+    await thread.save();
+
+    return res.status(200).json({ message: "Reply deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting reply:", error);
+    return res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.patch("/v1/thread/reply/:replyId", async (req, res) => {
+  try {
+    const { replyId } = req.params;
+    const { content } = req.body;
+    const userId = req.user?._id;
+
+    if (!replyId || typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ message: "Reply ID and valid content are required." });
+    }
+
+    const thread = await Thread.findOne({ "replies._id": replyId });
+
+    if (!thread) {
+      return res.status(404).json({ message: "Thread or reply not found." });
+    }
+
+    const reply = thread.replies.id(replyId);
+
+    if (!reply) {
+      return res.status(404).json({ message: "Reply not found." });
+    }
+
+    const isAuthor = reply.author?.toString() === userId?.toString();
+    const isAdmin = req.user?.is_admin;
+
+    if (!isAuthor && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized to edit this reply." });
+    }
+
+    reply.content = content.trim();
+    await thread.save();
+
+    return res.status(200).json({
+      message: "Reply updated successfully.",
+      reply,
+    });
+  } catch (err) {
+    console.error("Error editing reply:", err);
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+});
+
+
+
 router.post("/v1/thread-replay/like", async (req, res) => {
   try {
     if (!req.user) {

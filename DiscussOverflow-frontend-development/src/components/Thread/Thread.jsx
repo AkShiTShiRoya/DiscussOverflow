@@ -20,6 +20,8 @@ const Thread = () => {
     content: thread?.content,
   }); // new reply payload
   const { profile } = useProfile();
+  const [editingReplyId, setEditingReplyId] = useState(null);
+  const [editingReplyContent, setEditingReplyContent] = useState("");
 
   const userData = JSON.parse(localStorage.getItem("userData")) || null;
 
@@ -116,6 +118,37 @@ const Thread = () => {
       })
       .catch((err) => {
         console.error("delete thread", err);
+      });
+  };
+
+  const handleReplyUpdate = (replyId) => {
+    protectedApi
+      .patch(`/api/user/v1/thread/reply/${replyId}`, {
+        content: editingReplyContent,
+      })
+      .then((res) => {
+        if (res.status === 200) {
+          fetchThread();
+          setEditingReplyId(null);
+          setEditingReplyContent("");
+        }
+      })
+      .catch((err) => {
+        console.error("Update reply", err);
+      });
+  };
+
+  const handleReplyDelete = (replyId) => {
+    protectedApi
+      .delete(`/api/user/v1/thread/reply/${replyId}`)
+      .then((response) => {
+        if (response.status === 200) {
+          // Optionally update UI or reload
+          window.location.reload(); // or re-fetch the thread
+        }
+      })
+      .catch((err) => {
+        console.error("delete reply", err);
       });
   };
 
@@ -238,6 +271,7 @@ const Thread = () => {
                         style={{ whiteSpace: "pre-wrap" }}
                       />
                     )}
+                    
                   </div>
                   <div className="py-2 mt-5 flex justify-between items-center">
                     <div>Date: {thread.createDate}</div>
@@ -403,14 +437,90 @@ const Thread = () => {
                       </div>
                     </div>
                     <div className="text-lg" data-color-mode="light">
+                    {editingReplyId === reply._id ? (
+                      <>
+                        <MDEditor
+                          value={editingReplyContent}
+                          onChange={(val) => setEditingReplyContent(val)}
+                          previewOptions={{
+                            rehypePlugins: [[rehypeSanitize]],
+                          }}
+                        />
+                        <div className="mt-2 flex space-x-2">
+                          <button
+                            className="p-1 px-4 text-white bg-keppel hover:bg-keppel-dark"
+                            onClick={() => handleReplyUpdate(reply._id)}
+                            disabled={!editingReplyContent}
+                          >
+                            Update
+                          </button>
+                          <button
+                            className="p-1 px-4 bg-white text-keppel border hover:bg-gray-100"
+                            onClick={() => setEditingReplyId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
                       <MDEditor.Markdown
                         source={reply?.content}
                         style={{ whiteSpace: "pre-wrap" }}
                       />
+                    )}
                     </div>
                     <div className="py-2 mt-5 flex justify-between items-center">
                       <div>Date: {reply?.date}</div>
                       <div className="flex justify-center items-center space-x-2">
+                        {reply?.author?._id?.toString() ===
+                          profile?._id?.toString() && (
+                          <>
+                            {/* Edit button */}
+                            <button
+                              className="text-gray-700 py-2 px-2"
+                              onClick={() => {
+                                setEditingReplyId(reply._id);
+                                setEditingReplyContent(reply.content);
+                              }}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                fill="currentColor"
+                                className="bi bi-pencil-square"
+                                viewBox="0 0 16 16"
+                              >
+                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"
+                                />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                        {(userData?.is_admin === true ||
+                          thread?.author?._id === profile?._id ||
+                          reply?.author?._id?.toString() ===
+                            profile?._id?.toString()) && (
+                          <button
+                            className="text-red-600 py-2 px-3"
+                            onClick={() => handleReplyDelete(reply._id)}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              fill="currentColor"
+                              className="bi bi-trash"
+                              viewBox="0 0 16 16"
+                            >
+                              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
+                              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
+                            </svg>
+                          </button>
+                        )}
                         <button
                           onClick={() =>
                             likeDislikeThreadReplay(reply?._id, reply?.liked)
